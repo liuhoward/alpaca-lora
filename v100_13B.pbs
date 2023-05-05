@@ -1,0 +1,57 @@
+#!/bin/bash
+
+
+#PBS -N lora
+#PBS -P xl44
+#PBS -q gpuvolta
+###PBS -q dgxa100
+
+#PBS -l ncpus=24
+#PBS -l mem=100GB
+#PBS -l ngpus=2
+#PBS -l jobfs=10GB
+
+#PBS -l walltime=48:0:0
+#PBS -l storage=scratch/xl44
+#PBS -l wd
+
+
+date
+echo $(hostname -s)
+
+echo -e "
+ipdb help:
+set_trace(),breakpoint()
+n: next
+s: step into
+b <lineno> [,condition]: breakpoint at lineno
+disable num: disable breakpoint num
+c: continue to next breakpoint
+r: return back
+exit: finish
+
+pytorch:
+x.data.cpu().numpy()
+"
+
+
+module load singularity
+
+
+singularity exec --nv ~/gpt/gpu202305.sif python finetune.py \
+    --base_model ~/gpt4/llama_13B_hf/ \
+    --data_path alpaca_data_gpt4.json \
+    --output_dir './output13B' \
+    --batch_size 128 \
+    --micro_batch_size 4 \
+    --num_epochs 3 \
+    --learning_rate 1e-4 \
+    --cutoff_len 512 \
+    --val_set_size 2000 \
+    --lora_r 8 \
+    --lora_alpha 16 \
+    --lora_dropout 0.05 \
+    --lora_target_modules '[q_proj,v_proj]' \
+    --train_on_inputs \
+    --group_by_length
+
